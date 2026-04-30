@@ -1,6 +1,12 @@
 using System.Collections;
 using UnityEngine;
 
+public enum GrappleMomentumLockMode
+{
+    UntilGrounded,
+    ByTime
+}
+
 public class PlayerMovement : MonoBehaviour
 {
     [Header("References")]
@@ -28,12 +34,16 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Delay kecil supaya player tidak langsung release grapple karena tombol Space dari jump sebelumnya.")]
     public float grappleReleaseDelay = 0.15f;
 
-    [Tooltip("Kalau true, input horizontal dikunci setelah release grapple sampai player menyentuh tanah.")]
-    public bool lockHorizontalInputUntilGroundedAfterGrapple = true;
+    [Header("Grapple Momentum Lock")]
+    public GrappleMomentumLockMode grappleMomentumLockMode = GrappleMomentumLockMode.UntilGrounded;
+
+    [Tooltip("Dipakai kalau Grapple Momentum Lock Mode = ByTime.")]
+    public float grappleMomentumLockTime = 1f;
 
     private bool isGrappling;
     private bool isGrappleMomentum;
     private float grappleReleaseTimer;
+    private float grappleMomentumTimer;
 
     private Transform currentSnapPoint;
     private Transform currentCenterPos;
@@ -88,16 +98,23 @@ public class PlayerMovement : MonoBehaviour
 
     private void Move()
     {
+        // Visual tetap boleh berubah, walaupun movement sedang dikunci.
         UpdatePlayerFacingVisual();
 
         if (isGrappling) return;
 
-        if (isGrappleMomentum && lockHorizontalInputUntilGroundedAfterGrapple)
+        // Saat momentum grapple aktif, input horizontal tidak boleh menimpa velocity grapple.
+        if (isGrapleMomentumActive())
         {
             return;
         }
 
         rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+    }
+
+    private bool isGrapleMomentumActive()
+    {
+        return isGrappleMomentum;
     }
 
     private void UpdatePlayerFacingVisual()
@@ -192,6 +209,7 @@ public class PlayerMovement : MonoBehaviour
         isGrappleMomentum = false;
 
         grappleReleaseTimer = grappleReleaseDelay;
+        grappleMomentumTimer = 0;
 
         isJumping = false;
         currentCoyoteTime = 0;
@@ -237,6 +255,7 @@ public class PlayerMovement : MonoBehaviour
 
         isGrappling = false;
         isGrappleMomentum = true;
+        grappleMomentumTimer = grappleMomentumLockTime;
 
         currentSnapPoint = null;
         currentCenterPos = null;
@@ -249,21 +268,31 @@ public class PlayerMovement : MonoBehaviour
         Debug.Log("[PlayerMovement] Distance X: " + distanceX);
         Debug.Log("[PlayerMovement] Horizontal Force: " + horizontalForce);
         Debug.Log("[PlayerMovement] Up Force: " + grappleUpForce);
+        Debug.Log("[PlayerMovement] Lock Mode: " + grappleMomentumLockMode);
         Debug.Log("[PlayerMovement] Velocity setelah grapple: " + rb.linearVelocity);
-        Debug.Log("[PlayerMovement] Input horizontal dikunci sampai grounded: " + lockHorizontalInputUntilGroundedAfterGrapple);
     }
 
     private void UpdateGrappleMomentum()
     {
         if (!isGrappleMomentum) return;
 
-        bool groundedNow = IsGrounded();
-
-        if (groundedNow)
+        if (grappleMomentumLockMode == GrappleMomentumLockMode.UntilGrounded)
         {
-            isGrappleMomentum = false;
+            if (IsGrounded())
+            {
+                isGrappleMomentum = false;
+                Debug.Log("[PlayerMovement] Grapple momentum selesai karena player sudah menyentuh tanah.");
+            }
+        }
+        else if (grappleMomentumLockMode == GrappleMomentumLockMode.ByTime)
+        {
+            grappleMomentumTimer -= Time.fixedDeltaTime;
 
-            Debug.Log("[PlayerMovement] Player sudah menyentuh tanah. Movement normal aktif lagi.");
+            if (grappleMomentumTimer <= 0)
+            {
+                isGrappleMomentum = false;
+                Debug.Log("[PlayerMovement] Grapple momentum selesai karena timer habis.");
+            }
         }
     }
 
@@ -274,6 +303,9 @@ public class PlayerMovement : MonoBehaviour
 
         currentSnapPoint = null;
         currentCenterPos = null;
+
+        grappleReleaseTimer = 0;
+        grappleMomentumTimer = 0;
 
         rb.gravityScale = normalGravityScale;
 
