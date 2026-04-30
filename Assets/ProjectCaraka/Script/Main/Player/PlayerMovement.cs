@@ -24,11 +24,16 @@ public class PlayerMovement : MonoBehaviour
     public float grappleMinHorizontalForce = 4f;
     public float grappleMaxHorizontalForce = 18f;
     public float grappleUpForce = 8f;
-    public float grappleMomentumTime = 0.25f;
+
+    [Tooltip("Delay kecil supaya player tidak langsung release grapple karena tombol Space dari jump sebelumnya.")]
+    public float grappleReleaseDelay = 0.15f;
+
+    [Tooltip("Kalau true, input horizontal dikunci setelah release grapple sampai player menyentuh tanah.")]
+    public bool lockHorizontalInputUntilGroundedAfterGrapple = true;
 
     private bool isGrappling;
     private bool isGrappleMomentum;
-    private float grappleMomentumTimer;
+    private float grappleReleaseTimer;
 
     private Transform currentSnapPoint;
     private Transform currentCenterPos;
@@ -83,11 +88,20 @@ public class PlayerMovement : MonoBehaviour
 
     private void Move()
     {
+        UpdatePlayerFacingVisual();
+
         if (isGrappling) return;
-        if (isGrappleMomentum) return;
+
+        if (isGrappleMomentum && lockHorizontalInputUntilGroundedAfterGrapple)
+        {
+            return;
+        }
 
         rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+    }
 
+    private void UpdatePlayerFacingVisual()
+    {
         if (isFacingRight)
         {
             transform.rotation = Quaternion.Euler(0, 0, 0);
@@ -155,6 +169,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (!isGrappling) return;
 
+        if (grappleReleaseTimer > 0)
+        {
+            grappleReleaseTimer -= Time.deltaTime;
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             ReleaseGrapple();
@@ -170,6 +190,8 @@ public class PlayerMovement : MonoBehaviour
 
         isGrappling = true;
         isGrappleMomentum = false;
+
+        grappleReleaseTimer = grappleReleaseDelay;
 
         isJumping = false;
         currentCoyoteTime = 0;
@@ -214,6 +236,8 @@ public class PlayerMovement : MonoBehaviour
         horizontalForce = Mathf.Clamp(horizontalForce, grappleMinHorizontalForce, grappleMaxHorizontalForce);
 
         isGrappling = false;
+        isGrappleMomentum = true;
+
         currentSnapPoint = null;
         currentCenterPos = null;
 
@@ -221,25 +245,25 @@ public class PlayerMovement : MonoBehaviour
 
         rb.linearVelocity = new Vector2(directionX * horizontalForce, grappleUpForce);
 
-        isGrappleMomentum = true;
-        grappleMomentumTimer = grappleMomentumTime;
-
         Debug.Log("[PlayerMovement] Release Grapple");
         Debug.Log("[PlayerMovement] Distance X: " + distanceX);
         Debug.Log("[PlayerMovement] Horizontal Force: " + horizontalForce);
         Debug.Log("[PlayerMovement] Up Force: " + grappleUpForce);
         Debug.Log("[PlayerMovement] Velocity setelah grapple: " + rb.linearVelocity);
+        Debug.Log("[PlayerMovement] Input horizontal dikunci sampai grounded: " + lockHorizontalInputUntilGroundedAfterGrapple);
     }
 
     private void UpdateGrappleMomentum()
     {
         if (!isGrappleMomentum) return;
 
-        grappleMomentumTimer -= Time.fixedDeltaTime;
+        bool groundedNow = IsGrounded();
 
-        if (grappleMomentumTimer <= 0)
+        if (groundedNow)
         {
             isGrappleMomentum = false;
+
+            Debug.Log("[PlayerMovement] Player sudah menyentuh tanah. Movement normal aktif lagi.");
         }
     }
 
