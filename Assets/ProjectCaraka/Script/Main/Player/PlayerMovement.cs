@@ -11,6 +11,16 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("References")]
     private Rigidbody2D rb;
+    public Animator animator;
+
+    [Header("Animation Names")]
+    public string idleAnimationName = "Player_Idle";
+    public string runAnimationName = "Player_Run";
+    public string jumpAnimationName = "Player_Jump";
+    public string fallAnimationName = "Player_Fall";
+    public string grappleAnimationName = "Player_Grapple";
+
+    private string currentAnimationName;
 
     [Header("Move")]
     public float moveSpeed = 5f;
@@ -62,6 +72,11 @@ public class PlayerMovement : MonoBehaviour
         isFacingRight = true;
 
         normalGravityScale = rb.gravityScale;
+
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
     }
 
     void Update()
@@ -69,6 +84,7 @@ public class PlayerMovement : MonoBehaviour
         CheckMove();
         CheckJump();
         CheckGrappleInput();
+        UpdateAnimation();
     }
 
     private void FixedUpdate()
@@ -104,15 +120,15 @@ public class PlayerMovement : MonoBehaviour
         if (isGrappling) return;
 
         // Saat momentum grapple aktif, input horizontal tidak boleh menimpa velocity grapple.
-        if (isGrapleMomentumActive())
+        if (IsGrappleMomentumActive())
         {
             return;
         }
 
-        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+        rb.velocity = new Vector2(horizontalInput * moveSpeed, rb.velocity.y);
     }
 
-    private bool isGrapleMomentumActive()
+    private bool IsGrappleMomentumActive()
     {
         return isGrappleMomentum;
     }
@@ -160,7 +176,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (isJumping)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             isJumping = false;
         }
     }
@@ -214,7 +230,7 @@ public class PlayerMovement : MonoBehaviour
         isJumping = false;
         currentCoyoteTime = 0;
 
-        rb.linearVelocity = Vector2.zero;
+        rb.velocity = Vector2.zero;
         rb.gravityScale = 0;
 
         transform.position = currentSnapPoint.position;
@@ -230,7 +246,7 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        rb.linearVelocity = Vector2.zero;
+        rb.velocity = Vector2.zero;
         transform.position = currentSnapPoint.position;
     }
 
@@ -262,14 +278,14 @@ public class PlayerMovement : MonoBehaviour
 
         rb.gravityScale = normalGravityScale;
 
-        rb.linearVelocity = new Vector2(directionX * horizontalForce, grappleUpForce);
+        rb.velocity = new Vector2(directionX * horizontalForce, grappleUpForce);
 
         Debug.Log("[PlayerMovement] Release Grapple");
         Debug.Log("[PlayerMovement] Distance X: " + distanceX);
         Debug.Log("[PlayerMovement] Horizontal Force: " + horizontalForce);
         Debug.Log("[PlayerMovement] Up Force: " + grappleUpForce);
         Debug.Log("[PlayerMovement] Lock Mode: " + grappleMomentumLockMode);
-        Debug.Log("[PlayerMovement] Velocity setelah grapple: " + rb.linearVelocity);
+        Debug.Log("[PlayerMovement] Velocity setelah grapple: " + rb.velocity);
     }
 
     private void UpdateGrappleMomentum()
@@ -310,6 +326,48 @@ public class PlayerMovement : MonoBehaviour
         rb.gravityScale = normalGravityScale;
 
         Debug.Log("[PlayerMovement] Grapple berhenti tanpa lompatan.");
+    }
+
+    #endregion
+
+    #region Animation
+
+    private void UpdateAnimation()
+    {
+        if (animator == null) return;
+
+        bool groundedNow = IsGrounded();
+
+        if (isGrappling)
+        {
+            ChangeAnimationState(grappleAnimationName);
+        }
+        else if (!groundedNow && rb.velocity.y > 0.1f)
+        {
+            ChangeAnimationState(jumpAnimationName);
+        }
+        else if (!groundedNow && rb.velocity.y < -0.1f)
+        {
+            ChangeAnimationState(fallAnimationName);
+        }
+        else if (Mathf.Abs(horizontalInput) > 0)
+        {
+            ChangeAnimationState(runAnimationName);
+        }
+        else
+        {
+            ChangeAnimationState(idleAnimationName);
+        }
+    }
+
+    private void ChangeAnimationState(string newAnimationName)
+    {
+        if (string.IsNullOrEmpty(newAnimationName)) return;
+
+        if (currentAnimationName == newAnimationName) return;
+
+        animator.Play(newAnimationName);
+        currentAnimationName = newAnimationName;
     }
 
     #endregion
