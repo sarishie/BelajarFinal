@@ -37,8 +37,8 @@ public class PlayerKnockback : MonoBehaviour
             playerMovement.enabled = false;
         }
 
-        rb.linearVelocity = Vector2.zero;
-        rb.linearVelocity = direction.normalized * force;
+        rb.velocity = Vector2.zero;
+        rb.velocity = direction.normalized * force;
 
         yield return new WaitForSeconds(duration);
 

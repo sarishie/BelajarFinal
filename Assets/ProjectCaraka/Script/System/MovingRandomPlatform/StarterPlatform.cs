@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Threading;
 using UnityEngine;
 
 public class StarterPlatform : MonoBehaviour
@@ -16,7 +17,7 @@ public class StarterPlatform : MonoBehaviour
 
     private void Start()
     {
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
         if (spriteRenderer != null)
         {
@@ -33,8 +34,8 @@ public class StarterPlatform : MonoBehaviour
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-
-            if (blinkBeforeDestroy && timer <= blinkStartTime && spriteRenderer != null)
+            Debug.Log(timer);
+            if (blinkBeforeDestroy && timer < blinkStartTime && spriteRenderer != null)
             {
                 spriteRenderer.enabled = !spriteRenderer.enabled;
                 yield return new WaitForSeconds(blinkInterval);
