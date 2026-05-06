@@ -21,10 +21,6 @@ public class PlayerMovement : MonoBehaviour
     public string grappleAnimationName = "Player_Grapple";
 
     private string currentAnimationName;
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 
     [Header("Move")]
     public float moveSpeed = 5f;
@@ -126,7 +122,6 @@ public class PlayerMovement : MonoBehaviour
         // Saat momentum grapple aktif, input horizontal tidak boleh menimpa velocity grapple.
         if (IsGrappleMomentumActive())
         {
-
             return;
         }
 
@@ -181,13 +176,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (isJumping)
         {
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-
-=======
->>>>>>> 9a85223b8408230e51c83c81b36198c0f3607d71
->>>>>>> Stashed changes
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             isJumping = false;
         }
